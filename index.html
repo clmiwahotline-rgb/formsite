@@ -187,6 +187,15 @@
   .t-claim   { --tone:var(--g-purple); --tone-c:var(--g-purple-c); }
   .t-vehicle { --tone:var(--g-grey);   --tone-c:var(--g-grey-c); }
 
+  /* 閲覧（FAQ・みんなの声）— 淡い黄色のカード */
+  .tile.t-view{
+    background:#fef7e0;
+    border-color:#f3e2a7;
+    --tone:#c47f04; --tone-c:#fbecbd;
+  }
+  .tile.t-view::before{ background:#eaa600; }
+  .tile.t-view:hover{ border-color:#e8be55; }
+
   /* 準備中 */
   .tile.is-pending{ opacity:0.66; }
   .tile.is-pending:hover{ transform:none; box-shadow:var(--el-1); border-color:var(--line); }
@@ -291,6 +300,36 @@
         </div>
       </section>
 
+      <!-- 見る・調べる（閲覧） -->
+      <div class="sec">
+        <span class="sec-title">見る・調べる</span>
+        <span class="sec-sub">FAQ・みんなの声</span>
+      </div>
+      <div class="tiles">
+
+        <!-- FAQ：チャット専用ページ（鍵なし・管理機能なし）。同じformsite内に同梱 -->
+        <a class="tile t-view" href="FAQ.html" target="_blank" rel="noopener">
+          <div class="tile-ic">❓</div>
+          <div class="tile-label">FAQ（質問する）</div>
+          <div class="tile-sub">AIが社内ルールに回答</div>
+          <div class="tile-foot">
+            <span class="tile-status"><span class="dot"></span>AIが回答</span>
+            <span class="tile-go">→</span>
+          </div>
+        </a>
+
+        <a class="tile t-view" href="ありがとうカード.html">
+          <div class="tile-ic">💬</div>
+          <div class="tile-label">みんなの声を見る</div>
+          <div class="tile-sub">投稿一覧・コメント</div>
+          <div class="tile-foot">
+            <span class="tile-status"><span class="dot"></span>閲覧</span>
+            <span class="tile-go">→</span>
+          </div>
+        </a>
+
+      </div>
+
       <!-- フォーム一覧 -->
       <div class="sec">
         <span class="sec-title">フォームを選ぶ</span>
@@ -304,16 +343,6 @@
           <div class="tile-sub">感謝を投稿する</div>
           <div class="tile-foot">
             <span class="tile-status"><span class="dot"></span>受付中</span>
-            <span class="tile-go">→</span>
-          </div>
-        </a>
-
-        <a class="tile t-thanks-view" href="ありがとうカード.html">
-          <div class="tile-ic">💬</div>
-          <div class="tile-label">みんなの声を見る</div>
-          <div class="tile-sub">投稿一覧・コメント</div>
-          <div class="tile-foot">
-            <span class="tile-status"><span class="dot"></span>閲覧</span>
             <span class="tile-go">→</span>
           </div>
         </a>
@@ -444,7 +473,7 @@
       <!-- フッター -->
       <div class="foot">
         <div>報告フォーム管理システム</div>
-        <div>© 2025 クリーニングみわ ・ All Rights Reserved</div>
+        <div>© 2026 クリーニングみわ ・ All Rights Reserved</div>
         <div class="foot-links">
           <a href="#top">ページトップへ</a>
           <a href="#privacy">プライバシーポリシー</a>
