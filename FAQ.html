@@ -850,7 +850,15 @@ function _applyPEdit(item,edits){
 function findPriceItems(query,max=10){
   const {data,edits}=loadFaqPriceData();
   if(!data) return [];
-  const words=normStr(query).split(/[\s\u3001\u3002\u300c\u300d\uff01\uff1f]+/).filter(w=>w.length>=1);
+  // 助詞・助動詞で分割して日本語キーワードを抽出
+  const _qn = normStr(query);
+  const _rawWords = _qn.split(/[\s\u3001\u3002\u300c\u300d\uff01\uff1f\u306e\u3092\u304c\u306f\u306b\u3067\u3082\u3084\u304b\u3089\u307e\u3067\u3066\u305f\u3067\u3059\u307e\u3059]+/).filter(w=>w.length>=2);
+  // 単語が少ない場合は文字2グラムも加える
+  const searchWords = [..._rawWords];
+  for (let _i=0; _i<_qn.length-1; _i++){
+    const _bi=_qn.slice(_i,_i+2);
+    if(!searchWords.includes(_bi)) searchWords.push(_bi);
+  }
   const all=[...(data.cleaning||[]),...(data.special||[]),...(data.reform||[])];
   try{
     const fd=JSON.parse(localStorage.getItem('miwa.price.func.v1')||'null');
@@ -862,7 +870,7 @@ function findPriceItems(query,max=10){
     const a=_applyPEdit(item,edits);
     if(!a) return null;
     const hay=normStr((a.name||'')+(a.cat||''));
-    let sc=0; for(const w of words){if(hay.includes(w))sc+=w.length;}
+    let sc=0; for(const w of searchWords){if(hay.includes(w))sc+=w.length;}
     return sc>0?{...a,_sc:sc}:null;
   }).filter(Boolean).sort((a,b)=>b._sc-a._sc).slice(0,max);
 }
@@ -1531,12 +1539,20 @@ function askLocal() {
 function addToUnanswered(question) {
   // 重複チェック
   if (unansweredList.find(u => u.q === question)) return;
-  unansweredList.unshift({
-    id: nextId++,
-    q: question,
-    addedAt: nowStr(),
-    answered: false
-  });
+  const entry = { id: nextId++, q: question, addedAt: nowStr(), answered: false };
+  unansweredList.unshift(entry);
+  // FAQ管理と共有するためlocalStorageに保存
+  try {
+    const s = localStorage.getItem('miwa.faq.kb.v1');
+    const data = s ? JSON.parse(s) : {};
+    const ua = Array.isArray(data.unansweredList) ? data.unansweredList : [];
+    if (!ua.find(u => u.q === question)) {
+      ua.unshift(entry);
+      data.unansweredList = ua;
+      if (!data.nextId || data.nextId <= entry.id) data.nextId = entry.id + 1;
+      localStorage.setItem('miwa.faq.kb.v1', JSON.stringify(data));
+    }
+  } catch(e) {}
   renderUnanswered();
 }
 
