@@ -75,7 +75,15 @@
     white-space: nowrap;
   }
   .header-brand .brand-info { display: flex; flex-direction: column; line-height: 1.25; }
-  .header-brand .brand-name { font-weight: 700; font-size: 14.5px; color: var(--text); }
+  .header-brand .brand-name { font-weight: 700; font-size: 14.5px; color: var(--text); display:flex; align-items:center; gap:7px; }
+  #brand-badge {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:10.5px; font-weight:800; letter-spacing:.02em;
+    padding:2px 8px; border-radius:999px;
+    border:1.5px solid rgba(255,255,255,.7); background:rgba(255,255,255,.18);
+    color:#fff; white-space:nowrap; flex-shrink:0;
+  }
+  #brand-badge .bd { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
   .header-brand .brand-status { font-size: 11px; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 5px; }
   .header-brand .brand-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(5,150,105,.16); }
   .header-brand .dot {
@@ -809,7 +817,7 @@
   <div class="header-brand">
     <div class="dot"></div>
     <div class="brand-info">
-      <span class="brand-name">クリーニングみわ 社内FAQ</span>
+      <span class="brand-name">クリーニングみわ 社内FAQ <span id="brand-badge" style="display:none"></span></span>
       <span class="brand-status" id="store-status" onclick="changeStore()" style="cursor:pointer" title="タップして店舗を変更">オンライン</span>
     </div>
   </div>
@@ -936,6 +944,38 @@ function calcSqmSupplement(question){
   const unitTax=Math.round(item.sqmPrice*FAQ_TAX);
   const total=Math.round(item.sqmPrice*sqm.area*FAQ_TAX);
   return '\n\n[㎡計算結果] '+item.name+'（'+item.cat+'）: '+sqm.w+'m × '+sqm.h+'m = '+sqm.area+'㎡ → 約'+total.toLocaleString('ja-JP')+'円（税込）。単価'+unitTax+'円/㎡。この計算結果を回答に含めること。';
+}
+
+// ── 知識資料ストック検索 ─────────────────────────────────────
+const FAQ_DOCS_LS_KEY = 'miwa.faq.docs.v1';
+function loadFaqDocsForSearch() {
+  try { const s=localStorage.getItem(FAQ_DOCS_LS_KEY); return s?JSON.parse(s):[]; } catch(e){ return []; }
+}
+function searchDocuments(question, maxPassages=4, maxChars=1000) {
+  const docs = loadFaqDocsForSearch();
+  if (!docs.length) return '';
+  const words = normStr(question).split(/[\s\u3001\u3002\uff01\uff1f\u300c\u300d\u3010\u3011\n]+/).filter(w=>w.length>=2);
+  if (!words.length) return '';
+  const results = [];
+  for (const doc of docs) {
+    const paragraphs = doc.content.split(/\n/).filter(p=>p.trim().length>5);
+    for (const para of paragraphs) {
+      const trimmed = para.trim();
+      const score = words.filter(w=>normStr(trimmed).includes(w)).length;
+      if (score>0) results.push({text:trimmed, score, title:doc.title});
+    }
+  }
+  if (!results.length) return '';
+  results.sort((a,b)=>b.score-a.score);
+  const top=[]; let chars=0;
+  for (const r of results) {
+    if (top.length>=maxPassages||chars>=maxChars) break;
+    top.push(r); chars+=r.text.length;
+  }
+  const grouped={};
+  for (const r of top) { if(!grouped[r.title]) grouped[r.title]=[]; grouped[r.title].push(r.text); }
+  const sections=Object.entries(grouped).map(([t,txts])=>'【'+t+'】\n'+txts.join('\n'));
+  return '\n\n[参考資料（キーワード検索）]\n'+sections.join('\n\n')+'\n※上記の資料内容も参考にして回答してください。';
 }
 
 async function loadKBFromCloud() {
@@ -1161,6 +1201,7 @@ async function getAIAnswer(question) {
   const priceSupplement = priceItems.length ? formatPriceForAI(priceItems) : '';
   const sqmSupplement = calcSqmSupplement(question);
   const priceRule = priceItems.length ? '\n- 料金に関する質問の場合：知識ベースの料金記載は無視し、[料金表]の数値を優先して回答すること' : '';
+  const docSupplement = searchDocuments(question);
 
 
 
@@ -1185,7 +1226,7 @@ async function getAIAnswer(question) {
 3行目以降: 上記の構成で回答本文。回答できない場合は本文不要
 
 【知識ベース】
-${kbText || '（まだ知識が登録されていません）'}${priceSupplement}${sqmSupplement}`;
+${kbText || '（まだ知識が登録されていません）'}${priceSupplement}${sqmSupplement}${docSupplement}`;
 
   // GAS_URLが設定されていればGAS経由（本番）、空ならapi.anthropic.com直叩き（claude.ai上の確認用）
   const useGas = GAS_URL && GAS_URL.trim() !== '';
@@ -2252,6 +2293,15 @@ function updateStoreStatus(name) {
     el.textContent = 'オンライン';
     el.style.color = '';
   }
+  // ブランドバッジ更新
+  const badge = document.getElementById('brand-badge');
+  if (!badge) return;
+  const brand = faqBrand();
+  const isBlue = brand === 'blue';
+  const label = isBlue ? '青のみわ' : '緑のみわ';
+  const color = isBlue ? '#1a6dbd' : '#1a8f5c';
+  badge.innerHTML = `<span class="bd" style="background:${color};box-shadow:0 0 0 1.5px rgba(255,255,255,.6)"></span>${label}`;
+  badge.style.display = name ? 'inline-flex' : 'none';
 }
 
 // クラウド知識ベース読み込み（設定済みの場合）→ 完了後にスプラッシュを消す
