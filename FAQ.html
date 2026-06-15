@@ -756,55 +756,6 @@
   </svg>
 </template>
 
-<div id="store-select" aria-hidden="true">
-  <div class="ss-logo"></div>
-  <div class="ss-title">店舗を選んでください</div>
-  <div class="ss-sub">選択した店舗はこの端末に記憶されます</div>
-  <div class="ss-grid">
-    <button class="ss-btn" onclick="selectStore('本店')">本店</button>
-    <button class="ss-btn" onclick="selectStore('新田')">新田</button>
-    <button class="ss-btn" onclick="selectStore('草加西口')">草加西口</button>
-    <button class="ss-btn" onclick="selectStore('モール草加')">モール草加</button>
-    <button class="ss-btn" onclick="selectStore('蒲生')">蒲生</button>
-    <button class="ss-btn" onclick="selectStore('西友伊原')">西友伊原</button>
-    <button class="ss-btn" onclick="selectStore('東川口')">東川口</button>
-    <button class="ss-btn" onclick="selectStore('東川口2号')">東川口2号</button>
-    <button class="ss-btn" onclick="selectStore('マミー安行')">マミー安行</button>
-    <button class="ss-btn" onclick="selectStore('八潮工場')">八潮工場</button>
-    <button class="ss-btn" onclick="selectStore('東川口工場')">東川口工場</button>
-    <button class="ss-btn" onclick="selectStore('ルート')">ルート</button>
-    <button class="ss-btn" onclick="selectStore('本部')" style="grid-column:span 3;background:#f1f5f9;color:#374151">🏢 本部</button>
-  </div>
-  <!-- 本部用ブランド選択パネル -->
-  <div id="ss-honbu-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:460px;margin-top:4px">
-    <div style="font-size:13.5px;font-weight:700;color:#374151">本部のブランドを選んでください</div>
-    <div class="ss-brand-row">
-      <button class="ss-brand-btn" onclick="selectHonbuBrand('green')">
-        <span class="ss-brand-dot" style="background:#1a8f5c"></span>緑のみわ
-      </button>
-      <button class="ss-brand-btn" onclick="selectHonbuBrand('blue')">
-        <span class="ss-brand-dot" style="background:#1a6dbd"></span>青のみわ
-      </button>
-    </div>
-    <button onclick="document.getElementById('ss-honbu-panel').style.display='none'" style="font-size:12px;color:#999;background:none;border:none;cursor:pointer">← 戻る</button>
-  </div>
-  <div class="ss-note">あとからヘッダーの店舗名をタップして変更できます</div>
-</div>
-    <button class="ss-btn" onclick="selectStore('本店')">本店</button>
-    <button class="ss-btn" onclick="selectStore('新田')">新田</button>
-    <button class="ss-btn" onclick="selectStore('草加西口')">草加西口</button>
-    <button class="ss-btn" onclick="selectStore('モール草加')">モール草加</button>
-    <button class="ss-btn" onclick="selectStore('蒲生')">蒲生</button>
-    <button class="ss-btn" onclick="selectStore('西友伊原')">西友伊原</button>
-    <button class="ss-btn" onclick="selectStore('東川口')">東川口</button>
-    <button class="ss-btn" onclick="selectStore('東川口2号')">東川口2号</button>
-    <button class="ss-btn" onclick="selectStore('マミー安行')">マミー安行</button>
-    <button class="ss-btn" onclick="selectStore('八潮工場')">八潮工場</button>
-    <button class="ss-btn" onclick="selectStore('東川口工場')">東川口工場</button>
-    <button class="ss-btn" onclick="selectStore('ルート')">ルート</button>
-  </div>
-  <div class="ss-note">あとからヘッダーの店舗名をタップして変更できます</div>
-</div>
 
 <div id="splash" aria-hidden="true">
   <div class="splash-inner">
@@ -2245,7 +2196,7 @@ function selectStore(name) {
   try { localStorage.setItem(STORE_KEY, name); localStorage.setItem(BRAND_KEY, brand); } catch(e) {}
   updateStoreStatus(name);
   const el = document.getElementById('store-select');
-  if (el) { el.classList.remove('visible'); el.classList.add('hide'); setTimeout(() => el.remove(), 500); }
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }
 }
 function showHonbuBrandPanel() {
   const p = document.getElementById('ss-honbu-panel');
@@ -2256,42 +2207,39 @@ function selectHonbuBrand(brand) {
   try { localStorage.setItem(STORE_KEY, '本部'); localStorage.setItem(BRAND_KEY, brand); } catch(e) {}
   updateStoreStatus('本部');
   const el = document.getElementById('store-select');
-  if (el) { el.classList.remove('visible'); el.classList.add('hide'); setTimeout(() => el.remove(), 500); }
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }
+}
+
+// ── 店舗選択オーバーレイを動的生成 ──────────────────────────────
+function showStoreSelect(titleText, subText) {
+  const old = document.getElementById('store-select');
+  if (old) old.remove();
+  const stores = ['本店','新田','草加西口','モール草加','蒲生','西友伊原','東川口','東川口2号','マミー安行','八潮工場','東川口工場','ルート'];
+  const d = document.createElement('div');
+  d.id = 'store-select';
+  d.style.cssText = 'position:fixed;inset:0;z-index:9998;background:linear-gradient(165deg,#f1f6ee 0%,#e8f5e3 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px calc(env(safe-area-inset-bottom,0px) + 24px);overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity .4s ease;';
+  d.innerHTML =
+    '<div class="ss-logo"></div>' +
+    '<div class="ss-title">'+(titleText||'店舗を選んでください')+'</div>' +
+    '<div class="ss-sub">'+(subText||'選択した店舗はこの端末に記憶されます')+'</div>' +
+    '<div class="ss-grid">' +
+      stores.map(function(s){ return '<button class="ss-btn" onclick="selectStore(\''+s+'\')">'+s+'</button>'; }).join('') +
+      '<button class="ss-btn" onclick="selectStore(\'本部\')" style="grid-column:span 3;background:#f1f5f9;color:#374151">🏢 本部</button>' +
+    '</div>' +
+    '<div id="ss-honbu-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:460px;margin-top:4px">' +
+      '<div style="font-size:13.5px;font-weight:700;color:#374151">本部のブランドを選んでください</div>' +
+      '<div class="ss-brand-row">' +
+        '<button class="ss-brand-btn" onclick="selectHonbuBrand(\'green\')"><span class="ss-brand-dot" style="background:#1a8f5c"></span>緑のみわ</button>' +
+        '<button class="ss-brand-btn" onclick="selectHonbuBrand(\'blue\')"><span class="ss-brand-dot" style="background:#1a6dbd"></span>青のみわ</button>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'ss-honbu-panel\').style.display=\'none\'" style="font-size:12px;color:#999;background:none;border:none;cursor:pointer">← 戻る</button>' +
+    '</div>' +
+    '<div class="ss-note">あとからヘッダーの店舗名をタップして変更できます</div>';
+  document.body.appendChild(d);
+  requestAnimationFrame(function(){ d.style.opacity = '1'; });
 }
 function changeStore() {
-  const el = document.getElementById('store-select') || (() => {
-    const d = document.createElement('div');
-    d.id = 'store-select';
-    d.innerHTML = document.querySelector('#store-select')?.innerHTML || '';
-    return null;
-  })();
-  if (el) { el.style.display = 'flex'; el.classList.remove('hide'); requestAnimationFrame(() => el.classList.add('visible')); }
-  else {
-    const d = document.createElement('div');
-    d.id = 'store-select';
-    d.setAttribute('aria-hidden','true');
-    const stores = ['本店','新田','草加西口','モール草加','蒲生','西友伊原','東川口','東川口2号','マミー安行','八潮工場','東川口工場','ルート'];
-    d.innerHTML = `
-      <div class="ss-logo"></div>
-      <div class="ss-title">店舗を変更する</div>
-      <div class="ss-sub">この端末の店舗設定を変更します</div>
-      <button onclick="selectStore('本部')" style="width:100%;max-width:460px;padding:11px 16px;margin-bottom:10px;border:2px dashed #cbd5e1;border-radius:14px;background:#f8fafc;color:#374151;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">🏢 本部はこちら</button>
-      <div class="ss-grid">
-        ${stores.map(s=>`<button class="ss-btn" onclick="selectStore('${s}')">${s}</button>`).join('')}
-      </div>
-      <div id="ss-honbu-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:460px;margin-top:4px">
-        <div style="font-size:13.5px;font-weight:700;color:#374151">本部のブランドを選んでください</div>
-        <div class="ss-brand-row">
-          <button class="ss-brand-btn" onclick="selectHonbuBrand('green')"><span class="ss-brand-dot" style="background:#1a8f5c"></span>緑のみわ</button>
-          <button class="ss-brand-btn" onclick="selectHonbuBrand('blue')"><span class="ss-brand-dot" style="background:#1a6dbd"></span>青のみわ</button>
-        </div>
-        <button onclick="document.getElementById('ss-honbu-panel').style.display='none'" style="font-size:12px;color:#999;background:none;border:none;cursor:pointer">← 戻る</button>
-      </div>
-      <div class="ss-note">あとからヘッダーの店舗名をタップして変更できます</div>`;
-    document.body.appendChild(d);
-    d.style.display = 'flex';
-    requestAnimationFrame(() => d.classList.add('visible'));
-  }
+  showStoreSelect('店舗を変更する', 'この端末の店舗設定を変更します');
 }
 function updateStoreStatus(name) {
   const el = document.getElementById('store-status');
@@ -2337,16 +2285,10 @@ function updateStoreStatus(name) {
   updateStoreStatus(storedStore);
 
   if (!storedStore) {
-    // 未設定 → スプラッシュ消滅後に店舗選択画面を表示
-    setTimeout(() => {
-      const el = document.getElementById('store-select');
-      if (el) { el.style.display = 'flex'; requestAnimationFrame(() => el.classList.add('visible')); }
-    }, 800);
-  } else {
-    // 設定済み → 店舗選択を消す
-    const el = document.getElementById('store-select');
-    if (el) el.remove();
+    // 未設定 → スプラッシュ消滅後に店舗選択画面を動的生成して表示
+    setTimeout(() => showStoreSelect(), 800);
   }
+  // 設定済みの場合は何もしない（store-select は静的HTMLに存在しない）
 })();
 </script>
 </body>
