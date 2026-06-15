@@ -1147,6 +1147,12 @@ async function getAIAnswer(question) {
     `[${i+1}] Q: ${item.q}\nA: ${item.a}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
   ).join('\n\n');
 
+  // 料金表から関連品目を検索してプロンプトに注入
+  const priceItems = findPriceItems(question);
+  const priceSupplement = priceItems.length ? formatPriceForAI(priceItems) : '';
+  const sqmSupplement = calcSqmSupplement(question);
+  const priceRule = priceItems.length ? '\n- 料金に関する質問の場合：知識ベースの料金記載は無視し、[料金表]の数値を優先して回答すること' : '';
+
 
 
   const systemPrompt = `あなたはクリーニング店「クリーニングみわ」の社内FAQ AIです。受付・工場スタッフからの質問に、知識ベースの内容だけを根拠に答えます。
@@ -1154,7 +1160,7 @@ async function getAIAnswer(question) {
 【絶対ルール】
 - 回答の根拠は知識ベースの内容に限る。知識ベースに書かれていない事実・数値・手順・提案を創作してはいけない
 - 関連する複数の知識を組み合わせてよい（例：事実の知識＋受付手順の知識＋提案の知識）
-- 質問の意図に合致する知識がない場合は回答しない。テーマが似ていても角度が違う知識で代用しない
+- 質問の意図に合致する知識がない場合は回答しない。テーマが似ていても角度が違う知識で代用しない${priceRule}
 
 【回答の構成】
 知識ベースに根拠がある観点だけ、次の見出しを付けて書く。根拠が無い観点は省略する（無理に埋めない）。
@@ -1170,7 +1176,7 @@ async function getAIAnswer(question) {
 3行目以降: 上記の構成で回答本文。回答できない場合は本文不要
 
 【知識ベース】
-${kbText || '（まだ知識が登録されていません）'}`;
+${kbText || '（まだ知識が登録されていません）'}${priceSupplement}${sqmSupplement}`;
 
   // GAS_URLが設定されていればGAS経由（本番）、空ならapi.anthropic.com直叩き（claude.ai上の確認用）
   const useGas = GAS_URL && GAS_URL.trim() !== '';
@@ -2210,9 +2216,9 @@ function changeStore() {
       <div class="ss-logo"></div>
       <div class="ss-title">店舗を変更する</div>
       <div class="ss-sub">この端末の店舗設定を変更します</div>
+      <button onclick="selectStore('本部')" style="width:100%;max-width:460px;padding:11px 16px;margin-bottom:10px;border:2px dashed #cbd5e1;border-radius:14px;background:#f8fafc;color:#374151;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">🏢 本部はこちら</button>
       <div class="ss-grid">
         ${stores.map(s=>`<button class="ss-btn" onclick="selectStore('${s}')">${s}</button>`).join('')}
-        <button class="ss-btn" onclick="selectStore('本部')" style="grid-column:span 3;background:#f1f5f9;color:#374151">🏢 本部</button>
       </div>
       <div id="ss-honbu-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:460px;margin-top:4px">
         <div style="font-size:13.5px;font-weight:700;color:#374151">本部のブランドを選んでください</div>
