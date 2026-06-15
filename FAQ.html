@@ -2218,7 +2218,7 @@ function showStoreSelect(titleText, subText) {
   const stores = ['本店','新田','草加西口','モール草加','蒲生','西友伊原','東川口','東川口2号','マミー安行','八潮工場','東川口工場','ルート'];
   const d = document.createElement('div');
   d.id = 'store-select';
-  d.style.cssText = 'position:fixed;inset:0;z-index:9998;background:linear-gradient(165deg,#f1f6ee 0%,#e8f5e3 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px calc(env(safe-area-inset-bottom,0px) + 24px);overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity .4s ease;';
+  d.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;z-index:9998;background:linear-gradient(165deg,#f1f6ee 0%,#e8f5e3 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity .4s ease;';
   d.innerHTML =
     '<div class="ss-logo"></div>' +
     '<div class="ss-title">'+(titleText||'店舗を選んでください')+'</div>' +
