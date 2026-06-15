@@ -2258,11 +2258,9 @@ function showStoreSelect(titleText, subText) {
     '</div>' +
     '<div class="ss-note">あとからヘッダーの店舗名をタップして変更できます</div>';
   if (window.innerWidth >= 601) {
-    // PC: モーダルカード表示（半透明バックドロップ＋角丸カード）
     d.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(100,130,160,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .4s ease;';
     d.innerHTML = '<div style="background:linear-gradient(165deg,#f1f6ee 0%,#e8f5e3 100%);border-radius:20px;padding:28px 20px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;align-items:center;">' + inner + '</div>';
   } else {
-    // モバイル: 従来の全画面表示
     d.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;z-index:9998;background:linear-gradient(165deg,#f1f6ee 0%,#e8f5e3 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 16px 24px;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity .4s ease;';
     d.innerHTML = inner;
   }
