@@ -466,6 +466,8 @@
     gap: 10px; margin-bottom: 8px; flex-shrink: 0;
   }
   #faq-viewer.viewer-pdf .viewer-bar { display: flex; }
+  .viewer-hint { color: #cdd5e0; font-size: 12px; flex: 1; text-align: center; }
+  @media (max-width: 540px) { .viewer-hint { display: none; } }
   .viewer-open {
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--brand, #1a8f5c); color: #fff; text-decoration: none;
@@ -473,6 +475,22 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.3);
   }
   .viewer-open:hover { filter: brightness(1.08); }
+  /* PDFステージ（スクロール＋ピンチズーム） */
+  .pdf-stage {
+    flex: 1; min-height: 0; width: 100%; overflow: auto; border-radius: 10px;
+    background: #525659; touch-action: pan-x pan-y; overscroll-behavior: contain;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .pdf-zoom {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 12px 8px; transform-origin: center top; will-change: transform;
+  }
+  .pdf-page {
+    display: block; max-width: 100%; background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,.4); border-radius: 2px;
+  }
+  .pdf-loading, .pdf-more { color: #e5e7eb; font-size: 14px; padding: 30px 12px; text-align: center; }
+  .pdf-more { font-size: 12px; color: #b9c0cb; }
   .viewer-img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
   .viewer-frame { width: 100%; height: 100%; border: none; border-radius: 10px; background: #fff; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
   #faq-viewer.viewer-pdf .viewer-frame { flex: 1; min-height: 0; }
@@ -813,6 +831,8 @@
 <!-- 料金表シード（価格データ） -->
 <script src="../price_seed.js"></script>
 <script src="../price_seed_blue.js"></script>
+<!-- PDF.js（PDFをピンチズーム可能なビューアで表示） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -896,6 +916,14 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwgjgqVJNFNnNwNyzc8Dssk
 
 // ── クラウド知識ベース（FAQ管理と共有）──────────────────────────
 const FAQ_CHAT_CLOUD_KEY = 'miwa.faq.cloud.v1';
+const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbzWq4dsfENPZuZ9eGGum5Glg2pDcLf10bL8dJNvJgr66cgUOHAFGWPJNmkRUl3CpAml/exec';
+function faqGasUrl() {
+  try {
+    const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
+    const cfg = s ? JSON.parse(s) : {};
+    return cfg.gasUrl || DEFAULT_KB_GAS;
+  } catch(e) { return DEFAULT_KB_GAS; }
+}
 
 // ── 料金表連携 ─────────────────────────────────────────────
 const FAQ_TAX = 1.10;
@@ -2224,47 +2252,177 @@ function imagesHtml(items) {
 }
 
 // アプリ内ビューアー（画像＝拡大表示 / PDF＝埋め込みプレビュー、Driveに飛ばない）
-function openFaqViewer(key) {
-  const url = decodeURIComponent(key);
-  const d = faqDriveInfo(url);
-  let inner, isPdf = false, openUrl = url;
-  if (d) {
-    openUrl = `https://drive.google.com/file/d/${d.fileId}/view`;
-    if (d.isPdf) {
-      isPdf = true;
-      inner = `<iframe src="https://drive.google.com/file/d/${d.fileId}/preview" allow="autoplay" class="viewer-frame"></iframe>`;
-    } else {
-      inner = `<img src="https://drive.google.com/thumbnail?id=${d.fileId}&sz=w1600" class="viewer-img" alt="参考画像">`;
-    }
-  } else {
-    isPdf = /\.pdf(\?|#|$)/i.test(url);
-    if (isPdf) {
-      inner = `<iframe src="${escHtml(url)}" class="viewer-frame"></iframe>`;
-    } else {
-      inner = `<img src="${escHtml(url)}" class="viewer-img" alt="参考画像">`;
-    }
-  }
+function faqViewerEl() {
   let ov = document.getElementById('faq-viewer');
   if (!ov) {
     ov = document.createElement('div');
     ov.id = 'faq-viewer';
     document.body.appendChild(ov);
   }
-  ov.classList.toggle('viewer-pdf', isPdf);
-  const openBtn = `<a class="viewer-open" href="${escHtml(openUrl)}" target="_blank" rel="noopener">↗ 別タブで全画面表示</a>`;
-  ov.innerHTML = `<div class="viewer-backdrop" onclick="closeFaqViewer()"></div>`
-    + `<div class="viewer-box">`
-    + `<div class="viewer-bar">${isPdf ? openBtn : '<span></span>'}`
-    + `<button class="viewer-close" onclick="closeFaqViewer()" aria-label="閉じる">×</button></div>`
-    + inner + `</div>`;
-  ov.style.display = 'flex';
-  requestAnimationFrame(()=>{ ov.style.opacity = '1'; });
+  return ov;
 }
+
+function openFaqViewer(key) {
+  const url = decodeURIComponent(key);
+  const d = faqDriveInfo(url);
+  const isPdf = d ? d.isPdf : /\.pdf(\?|#|$)/i.test(url);
+  const openUrl = d ? `https://drive.google.com/file/d/${d.fileId}/view` : url;
+  const ov = faqViewerEl();
+  ov.classList.toggle('viewer-pdf', isPdf);
+
+  if (isPdf) {
+    const openBtn = `<a class="viewer-open" href="${escHtml(openUrl)}" target="_blank" rel="noopener">↗ 別タブで開く</a>`;
+    ov.innerHTML = `<div class="viewer-backdrop" onclick="closeFaqViewer()"></div>`
+      + `<div class="viewer-box">`
+      + `<div class="viewer-bar">${openBtn}`
+      + `<span class="viewer-hint">2本指でピンチ拡大・ダブルタップで拡大</span>`
+      + `<button class="viewer-close" onclick="closeFaqViewer()" aria-label="閉じる">×</button></div>`
+      + `<div class="pdf-stage" id="pdf-stage"><div class="pdf-zoom" id="pdf-zoom">`
+      + `<div class="pdf-loading" id="pdf-loading">📄 読み込み中…</div>`
+      + `</div></div></div>`;
+    ov.style.display = 'flex';
+    requestAnimationFrame(()=>{ ov.style.opacity = '1'; });
+    renderPdfInViewer(d ? d.fileId : null, d ? null : url);
+  } else {
+    const src = d ? `https://drive.google.com/thumbnail?id=${d.fileId}&sz=w1600` : url;
+    ov.innerHTML = `<div class="viewer-backdrop" onclick="closeFaqViewer()"></div>`
+      + `<div class="viewer-box">`
+      + `<button class="viewer-close" onclick="closeFaqViewer()" aria-label="閉じる">×</button>`
+      + `<img src="${escHtml(src)}" class="viewer-img" alt="参考画像">` + `</div>`;
+    ov.style.display = 'flex';
+    requestAnimationFrame(()=>{ ov.style.opacity = '1'; });
+  }
+}
+
+// PDFを取得して PDF.js でページを描画 → ピンチズーム有効化
+async function renderPdfInViewer(fileId, directUrl) {
+  const zoom = document.getElementById('pdf-zoom');
+  const loading = document.getElementById('pdf-loading');
+  if (!zoom || !window.pdfjsLib) {
+    if (loading) loading.textContent = 'ビューアを初期化できませんでした。「別タブで開く」をご利用ください。';
+    return;
+  }
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    let bytes;
+    if (fileId) {
+      // Drive ファイル → GAS 経由で base64 取得
+      const res = await fetch(faqGasUrl() + '?action=getFile&fileId=' + encodeURIComponent(fileId));
+      const data = await res.json();
+      if (!data || !data.ok || !data.base64) throw new Error((data && data.error) || '取得失敗');
+      const bin = atob(data.base64);
+      bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } else {
+      const res = await fetch(directUrl);
+      bytes = new Uint8Array(await res.arrayBuffer());
+    }
+    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    if (loading) loading.remove();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const stageW = document.getElementById('pdf-stage').clientWidth;
+    const maxPages = Math.min(pdf.numPages, 30);
+    for (let n = 1; n <= maxPages; n++) {
+      const page = await pdf.getPage(n);
+      const vp1 = page.getViewport({ scale: 1 });
+      const fitScale = Math.min((stageW - 16) / vp1.width, 2.2);
+      const vp = page.getViewport({ scale: fitScale * dpr });
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page';
+      canvas.width = vp.width; canvas.height = vp.height;
+      canvas.style.width = (vp.width / dpr) + 'px';
+      canvas.style.height = (vp.height / dpr) + 'px';
+      zoom.appendChild(canvas);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    }
+    if (maxPages < pdf.numPages) {
+      const more = document.createElement('div');
+      more.className = 'pdf-more';
+      more.textContent = `残り ${pdf.numPages - maxPages} ページは「別タブで開く」で確認できます`;
+      zoom.appendChild(more);
+    }
+    setupPinchZoom(document.getElementById('pdf-stage'), zoom);
+  } catch (e) {
+    if (loading) loading.innerHTML = '読み込みに失敗しました。<br>「別タブで開く」をご利用ください。';
+    console.warn('PDF render failed:', e);
+  }
+}
+
+// ピンチ／ダブルタップ／ホイールでズーム＋パン
+function setupPinchZoom(stage, target) {
+  let scale = 1, tx = 0, ty = 0;
+  const MIN = 1, MAX = 6;
+  const apply = () => { target.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
+  const clampPan = () => {
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    const maxX = Math.max(0, (target.offsetWidth * scale - sw) / 2);
+    const maxY = Math.max(0, (target.offsetHeight * scale - sh) / 2);
+    tx = Math.max(-maxX, Math.min(maxX, tx));
+    ty = Math.max(-maxY, Math.min(maxY, ty));
+  };
+  target.style.transformOrigin = 'center top';
+
+  let pts = new Map(), startDist = 0, startScale = 1, startMid = null, startT = null, lastTap = 0;
+  stage.addEventListener('pointerdown', e => {
+    stage.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      const a = [...pts.values()];
+      startDist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+      startScale = scale;
+      startMid = { x: (a[0].x + a[1].x)/2, y: (a[0].y + a[1].y)/2 };
+      startT = { x: tx, y: ty };
+    } else if (pts.size === 1) {
+      startT = { x: tx, y: ty, px: e.clientX, py: e.clientY };
+      // ダブルタップ判定
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        scale = scale > 1.2 ? 1 : 2.5;
+        tx = 0; ty = 0; clampPan(); apply();
+        lastTap = 0;
+      } else lastTap = now;
+    }
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const a = [...pts.values()];
+    if (pts.size === 2) {
+      const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+      scale = Math.max(MIN, Math.min(MAX, startScale * (dist / startDist)));
+      tx = startT.x; ty = startT.y;
+      clampPan(); apply();
+      e.preventDefault();
+    } else if (pts.size === 1 && scale > 1) {
+      tx = startT.x + (e.clientX - startT.px);
+      ty = startT.y + (e.clientY - startT.py);
+      clampPan(); apply();
+      e.preventDefault();
+    }
+  }, { passive: false });
+  const up = e => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) startDist = 0;
+    if (scale <= 1.01) { scale = 1; tx = 0; ty = 0; apply(); }
+  };
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  // デスクトップ: ホイールでズーム
+  stage.addEventListener('wheel', e => {
+    if (!e.ctrlKey && Math.abs(e.deltaY) < 1) return;
+    e.preventDefault();
+    const delta = -e.deltaY * 0.002;
+    scale = Math.max(MIN, Math.min(MAX, scale + delta * scale));
+    if (scale <= 1.01) { scale = 1; tx = 0; ty = 0; }
+    clampPan(); apply();
+  }, { passive: false });
+}
+
 function closeFaqViewer() {
   const ov = document.getElementById('faq-viewer');
   if (!ov) return;
   ov.style.opacity = '0';
-  setTimeout(()=>{ ov.style.display='none'; ov.innerHTML=''; }, 200);
+  setTimeout(()=>{ ov.style.display='none'; ov.innerHTML=''; ov.classList.remove('viewer-pdf'); }, 200);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFaqViewer(); });
 
