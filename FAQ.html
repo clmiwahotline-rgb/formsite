@@ -1018,31 +1018,59 @@ const FAQ_DOCS_LS_KEY = 'miwa.faq.docs.v1';
 function loadFaqDocsForSearch() {
   try { const s=localStorage.getItem(FAQ_DOCS_LS_KEY); return s?JSON.parse(s):[]; } catch(e){ return []; }
 }
-function searchDocuments(question, maxPassages=4, maxChars=1000) {
+
+// ── 知識資料クラウド同期（全端末共有）──────────────────────────
+const FAQ_DOCS_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
+async function syncDocsFromCloud() {
+  try {
+    const res = await fetch(FAQ_DOCS_CLOUD_URL + '?sheet=FAQ%E8%B3%87%E6%96%99');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      localStorage.setItem(FAQ_DOCS_LS_KEY, JSON.stringify(data));
+      console.log('[FAQ] 知識資料をクラウドから同期しました:', data.length, '件');
+    }
+  } catch(e) {
+    console.warn('[FAQ] 知識資料クラウド同期失敗（ローカルで継続）:', e.message);
+  }
+}
+
+function searchDocuments(question, maxPassages=4, maxChars=1500) {
   const docs = loadFaqDocsForSearch();
   if (!docs.length) return '';
-  const words = normStr(question).split(/[\s\u3001\u3002\uff01\uff1f\u300c\u300d\u3010\u3011\n]+/).filter(w=>w.length>=2);
-  if (!words.length) return '';
+  const q = normStr(question);
+  // 日本語n-gram（2〜4文字）＋スペース分割の両方でキーワード収集
+  const terms = new Set();
+  q.split(/[\s\u3001\u3002\uff01\uff1f\u300c\u300d\u3010\u3011\n]+/)
+    .filter(w => w.length >= 2).forEach(w => terms.add(w));
+  for (let len = 2; len <= 4; len++) {
+    for (let i = 0; i <= q.length - len; i++) terms.add(q.slice(i, i + len));
+  }
+  const searchTerms = [...terms];
+  if (!searchTerms.length) return '';
   const results = [];
   for (const doc of docs) {
-    const paragraphs = doc.content.split(/\n/).filter(p=>p.trim().length>5);
+    const paragraphs = doc.content.split(/\n/).filter(p => p.trim().length > 5);
     for (const para of paragraphs) {
       const trimmed = para.trim();
-      const score = words.filter(w=>normStr(trimmed).includes(w)).length;
-      if (score>0) results.push({text:trimmed, score, title:doc.title});
+      const norm = normStr(trimmed);
+      const score = searchTerms.reduce((s, w) => norm.includes(w) ? s + w.length : s, 0);
+      if (score >= 4) results.push({ text: trimmed, score, title: doc.title });
     }
   }
   if (!results.length) return '';
-  results.sort((a,b)=>b.score-a.score);
-  const top=[]; let chars=0;
+  results.sort((a, b) => b.score - a.score);
+  const seen = new Set();
+  const top = []; let chars = 0;
   for (const r of results) {
-    if (top.length>=maxPassages||chars>=maxChars) break;
-    top.push(r); chars+=r.text.length;
+    if (seen.has(r.text) || top.length >= maxPassages || chars >= maxChars) continue;
+    seen.add(r.text); top.push(r); chars += r.text.length;
   }
-  const grouped={};
-  for (const r of top) { if(!grouped[r.title]) grouped[r.title]=[]; grouped[r.title].push(r.text); }
-  const sections=Object.entries(grouped).map(([t,txts])=>'【'+t+'】\n'+txts.join('\n'));
-  return '\n\n[参考資料（キーワード検索）]\n'+sections.join('\n\n')+'\n※上記の資料内容も参考にして回答してください。';
+  if (!top.length) return '';
+  const grouped = {};
+  for (const r of top) { if (!grouped[r.title]) grouped[r.title] = []; grouped[r.title].push(r.text); }
+  const sections = Object.entries(grouped).map(([t, txts]) => '【' + t + '】\n' + txts.join('\n'));
+  return '\n\n[参考資料（キーワード検索）]\n' + sections.join('\n\n') + '\n※上記の資料内容も参考にして回答してください。';
 }
 
 async function loadKBFromCloud() {
