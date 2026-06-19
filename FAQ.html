@@ -1296,7 +1296,8 @@ async function getAIAnswer(question) {
   const priceItems = findPriceItems(question);
   const priceSupplement = priceItems.length ? formatPriceForAI(priceItems) : '';
   const sqmSupplement = calcSqmSupplement(question);
-  const priceRule = priceItems.length ? '\n- 料金に関する質問の場合：知識ベースの料金記載は無視し、[料金表]の数値を優先して回答すること' : '';
+  // 料金は常に料金表を優先（知識ベースの料金は古い可能性があるため）
+  const priceRule = '\n- 料金に関する質問の場合：知識ベースに記載された金額は無視し、[料金表]の数値のみを使って回答すること。[料金表]にない場合は「料金については担当スタッフにお問い合わせください」と答えること。';
   const docSupplement = searchDocuments(question);
 
 
@@ -1527,12 +1528,8 @@ function showRelatedKB(id) {
 
 // ─── 料金マスキング ───────────────────────────────────────────
 // FAQ管理ページのトグルとlocalStorage（miwa_price_mask）を共有
-let PRICE_MASK_ENABLED = (function() {
-  try { return localStorage.getItem('miwa_price_mask') === '1'; } catch(e) { return false; }
-})();
-window.addEventListener('storage', function(e) {
-  if (e.key === 'miwa_price_mask') PRICE_MASK_ENABLED = (e.newValue === '1');
-});
+// 料金マスキングは常時ON（知識ベースの料金は古い可能性があるため常に伏せる）
+const PRICE_MASK_ENABLED = true;
 function maskPrices(html) {
   if (!PRICE_MASK_ENABLED) return html;
   return html
