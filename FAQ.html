@@ -1288,8 +1288,12 @@ function searchKnowledge(question) {
 // ═══════════════════════════════════════════════
 
 async function getAIAnswer(question) {
+  // KBテキストから料金を除去（AIにKBの古い料金を使わせない）
+  const stripPrices = t => t
+    .replace(/¥[\d,]+/g, '(料金は料金表参照)')
+    .replace(/\d[\d,]*円(?:\s*(?:税込|税抜|[\uff08(][^)\uff09]{0,12}[\uff09)])?/g, '(料金は料金表参照)');
   const kbText = knowledgeBase.map((item, i) =>
-    `[${i+1}] Q: ${item.q}\nA: ${item.a}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
+    `[${i+1}] Q: ${item.q}\nA: ${stripPrices(item.a)}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
   ).join('\n\n');
 
   // 料金表から関連品目を検索してプロンプトに注入
@@ -1520,7 +1524,7 @@ function renderRelated(items) {
 function showRelatedKB(id) {
   const kb = knowledgeBase.find(k => k.id === id);
   if (!kb) return;
-  const finalHtml = maskPrices(mdToHtml(kb.a))
+  const finalHtml = mdToHtml(kb.a)
     + imagesHtml([kb]).replace('answer-images', 'imgs')
     + `<div class="src">\ud83d\udcda \u95a2\u9023\uff1a${escHtml(kb.category || '')}</div>`;
   addBotBubble(finalHtml);
@@ -1618,7 +1622,7 @@ async function askQuestion() {
     if (answered) {
       statsAnswered++;
       const related = findRelated(question, result.refItems);
-      const finalHtml = maskPrices(mdToHtml(result.text))
+      const finalHtml = mdToHtml(result.text)
         + imagesHtml(result.refItems).replace('answer-images', 'imgs')
         + `<div class="src">\ud83d\udcda \u77e5\u8b58\u30d9\u30fc\u30b9\u3088\u308a\u56de\u7b54${refLabel(result.refItems)}</div>`
         + renderRelated(related);
