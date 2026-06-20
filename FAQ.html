@@ -2625,6 +2625,7 @@ function updateStoreStatus(name) {
   } catch(e) {}
 
   await loadKBFromCloud();
+  syncDocsFromCloud(); // 知識資料ストックをクラウドから同期
 
   document.body.classList.add('chat-mode');
   addBotBubble(
