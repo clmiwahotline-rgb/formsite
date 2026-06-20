@@ -1055,7 +1055,7 @@ function searchDocuments(question, maxPassages=4, maxChars=1500) {
       const trimmed = para.trim();
       const norm = normStr(trimmed);
       const score = searchTerms.reduce((s, w) => norm.includes(w) ? s + w.length : s, 0);
-      if (score >= 4) results.push({ text: trimmed, score, title: doc.title });
+      if (score >= 2) results.push({ text: trimmed, score, title: doc.title });
     }
   }
   if (!results.length) return '';
@@ -2625,7 +2625,7 @@ function updateStoreStatus(name) {
   } catch(e) {}
 
   await loadKBFromCloud();
-  syncDocsFromCloud(); // 知識資料ストックをクラウドから同期
+  await syncDocsFromCloud(); // 知識資料ストックをクラウドから同期（await で完了を待つ）
 
   document.body.classList.add('chat-mode');
   addBotBubble(
