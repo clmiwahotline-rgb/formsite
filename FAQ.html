@@ -1292,9 +1292,24 @@ async function getAIAnswer(question) {
   const stripPrices = t => t
     .replace(/¥[\d,]+/g, '(料金は料金表参照)')
     .replace(/\d[\d,]*円(?:\s*(?:税込|税抜|[\uff08(][^)\uff09]{0,12}[\uff09)]))?/g, '(料金は料金表参照)');
-  const kbText = knowledgeBase.map((item, i) =>
-    `[${i+1}] Q: ${item.q}\nA: ${stripPrices(item.a)}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
-  ).join('\n\n');
+  // KB を質問に関連するエントリだけに絞る（関連スコアが高い上位20件）
+  const qNorm = normStr(question);
+  const qTerms = [...new Set([
+    ...qNorm.split(/[\s\u3001\u3002\uff01\uff1f\u300c\u300d\u3010\u3011\n]+/).filter(w => w.length >= 2),
+    ...[2,3,4].flatMap(len => qNorm.length >= len
+      ? [...Array(qNorm.length - len + 1)].map((_, i) => qNorm.slice(i, i + len))
+      : [])
+  ])];
+  const scoredKB = knowledgeBase.map((item, i) => {
+    const text = normStr(item.q + ' ' + item.a);
+    const score = qTerms.reduce((s, w) => text.includes(w) ? s + w.length : s, 0);
+    return { item, i, score };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 20);
+  const kbText = scoredKB.length
+    ? scoredKB.map(({ item, i }) =>
+        `[${i+1}] Q: ${item.q}\nA: ${stripPrices(item.a)}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
+      ).join('\n\n')
+    : '';
 
   // 料金表から関連品目を検索してプロンプトに注入
   const priceItems = findPriceItems(question);
