@@ -1291,7 +1291,7 @@ async function getAIAnswer(question) {
   // KBテキストから料金を除去（AIにKBの古い料金を使わせない）
   const stripPrices = t => t
     .replace(/¥[\d,]+/g, '(料金は料金表参照)')
-    .replace(/\d[\d,]*円(?:\s*(?:税込|税抜|[\uff08(][^)\uff09]{0,12}[\uff09)])?/g, '(料金は料金表参照)');
+    .replace(/\d[\d,]*円(?:\s*(?:税込|税抜|[\uff08(][^)\uff09]{0,12}[\uff09)]))?/g, '(料金は料金表参照)');
   const kbText = knowledgeBase.map((item, i) =>
     `[${i+1}] Q: ${item.q}\nA: ${stripPrices(item.a)}${item.category ? `\nカテゴリ: ${item.category}` : ''}`
   ).join('\n\n');
