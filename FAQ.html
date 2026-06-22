@@ -9,7 +9,8 @@
 <title>クリーニングみわ 社内FAQ（体験版）</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap"></noscript>
 <style>
   :root {
     --bg: #f5f7fa;
@@ -289,21 +290,6 @@
   .chat-send:hover { background: #05b34c; }
   .chat-send:active { transform: scale(.92); }
   .chat-send:disabled { background: #c5ccd3; cursor: not-allowed; box-shadow: none; }
-
-  .chat-quick {
-    display: flex; gap: 7px; padding: 0 14px 11px; flex-wrap: wrap;
-    flex-shrink: 0; background: var(--line-bg);
-  }
-  .chat-quick button {
-    background: rgba(255,255,255,.96); border: none;
-    border-radius: 18px; padding: 7px 14px;
-    font-size: 12.5px; color: var(--primary); cursor: pointer;
-    font-family: inherit; white-space: nowrap; font-weight: 600;
-    box-shadow: 0 1px 3px rgba(40,55,80,.14);
-    transition: transform .1s, background .15s;
-  }
-  .chat-quick button:hover { background: #fff; transform: translateY(-1px); }
-  .chat-quick button:active { transform: translateY(0); }
 
   /* ─── 文字サイズ設定 ─── */
   .fs-options { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -831,8 +817,7 @@
 <!-- 料金表シード（価格データ） -->
 <script src="./price_seed.js"></script>
 <script src="./price_seed_blue.js"></script>
-<!-- PDF.js（PDFをピンチズーム可能なビューアで表示） -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- PDF.jsは使用時に遅延読み込み（初回ロードを高速化） -->
 </head>
 <body>
 
@@ -887,12 +872,7 @@
     <div class="chat-day">今日</div>
   </div>
 
-  <div class="chat-quick" id="chat-quick">
-    <button onclick="quickAsk('高級ダウンってどう判断する？')">高級ダウンの判断</button>
-    <button onclick="quickAsk('シルクのシミ抜きは難しい？')">シルクのシミ抜き</button>
-    <button onclick="quickAsk('シミの種類を教えて')">シミの種類</button>
-    <button onclick="quickAsk('ケアラベルの必須項目は？')">ケアラベル</button>
-  </div>
+  <div class="chat-quick" id="chat-quick" style="display:none"></div>
 
   <div class="chat-inputbar">
     <textarea
@@ -1319,9 +1299,14 @@ async function getAIAnswer(question) {
   const priceRule = '\n- 料金に関する質問の場合：知識ベースに記載された金額は無視し、[料金表]の数値のみを使って回答すること。[料金表]にない場合は「料金については担当スタッフにお問い合わせください」と答えること。';
   const docSupplement = searchDocuments(question);
 
+  // 店舗情報（選択済みなら店舗に絞った回答をAIに促す）
+  const _storeName  = faqStoreName();
+  const _storeBrand = _storeName ? brandForStore(_storeName) : '';
+  const _storeNote  = _storeName
+    ? `\n\n【質問しているスタッフの店舗】${_storeName}（${_storeBrand === 'blue' ? '青のみわ' : '緑のみわ'}）\n・回答が店舗ごとに異なる場合は、この店舗向けに絞り込んで答えること\n・「みわ（緑）の場合」「みわ（青）の場合」のように書き分けられた知識があれば、この店舗に該当する内容だけを回答すること`
+    : '';
 
-
-  const systemPrompt = `あなたはクリーニング店「クリーニングみわ」で長年働いている、頼りになる優しい先輩スタッフです。後輩スタッフからの業務の質問に、知識ベースの内容をもとに、親しみやすく・わかりやすく答えてあげてください。
+  const systemPrompt = `あなたはクリーニング店「クリーニングみわ」で長年働いている、頼りになる優しい先輩スタッフです。後輩スタッフからの業務の質問に、知識ベースの内容をもとに、親しみやすく・わかりやすく答えてあげてください。${_storeNote}
 
 【話し方のスタイル】
 - 「〜ですよ」「〜ですね」「〜してみてね」など、柔らかくて温かみのある丁寧語で話す
@@ -2346,10 +2331,25 @@ function openFaqViewer(key) {
   }
 }
 
+// PDF.js 遅延読み込みヘルパー
+let _pdfJsLoading = null;
+async function loadPdfJs() {
+  if (window.pdfjsLib) return;
+  if (_pdfJsLoading) return _pdfJsLoading;
+  _pdfJsLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return _pdfJsLoading;
+}
+
 // PDFを取得して PDF.js でページを描画 → ピンチズーム有効化
 async function renderPdfInViewer(fileId, directUrl) {
   const zoom = document.getElementById('pdf-zoom');
   const loading = document.getElementById('pdf-loading');
+  await loadPdfJs().catch(() => {});
   if (!zoom || !window.pdfjsLib) {
     if (loading) loading.textContent = 'ビューアを初期化できませんでした。「別タブで開く」をご利用ください。';
     return;
