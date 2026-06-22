@@ -896,7 +896,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwgjgqVJNFNnNwNyzc8Dssk
 
 // ── クラウド知識ベース（FAQ管理と共有）──────────────────────────
 const FAQ_CHAT_CLOUD_KEY = 'miwa.faq.cloud.v1';
-const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbzWq4dsfENPZuZ9eGGum5Glg2pDcLf10bL8dJNvJgr66cgUOHAFGWPJNmkRUl3CpAml/exec';
+const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
 function faqGasUrl() {
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
@@ -1054,7 +1054,7 @@ function searchDocuments(question, maxPassages=4, maxChars=1500) {
 }
 
 async function loadKBFromCloud() {
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbzWq4dsfENPZuZ9eGGum5Glg2pDcLf10bL8dJNvJgr66cgUOHAFGWPJNmkRUl3CpAml/exec';
+  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
     const cfg = s ? JSON.parse(s) : {};
@@ -1581,7 +1581,7 @@ function faqStoreName() {
   } catch(e) { return ''; }
 }
 function sendFaqLogToCloud(q, a, answered) {
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbzWq4dsfENPZuZ9eGGum5Glg2pDcLf10bL8dJNvJgr66cgUOHAFGWPJNmkRUl3CpAml/exec';
+  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
     const cfg = s ? JSON.parse(s) : {};
