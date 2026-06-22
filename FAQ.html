@@ -896,7 +896,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwgjgqVJNFNnNwNyzc8Dssk
 
 // ── クラウド知識ベース（FAQ管理と共有）──────────────────────────
 const FAQ_CHAT_CLOUD_KEY = 'miwa.faq.cloud.v1';
-const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
+const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
 function faqGasUrl() {
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
@@ -1000,7 +1000,7 @@ function loadFaqDocsForSearch() {
 }
 
 // ── 知識資料クラウド同期（全端末共有）──────────────────────────
-const FAQ_DOCS_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
+const FAQ_DOCS_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
 async function syncDocsFromCloud() {
   try {
     const res = await fetch(FAQ_DOCS_CLOUD_URL + '?sheet=FAQ%E8%B3%87%E6%96%99');
@@ -1054,7 +1054,7 @@ function searchDocuments(question, maxPassages=4, maxChars=1500) {
 }
 
 async function loadKBFromCloud() {
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
+  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
     const cfg = s ? JSON.parse(s) : {};
@@ -1590,7 +1590,7 @@ function sendFaqLogToCloud(q, a, answered) {
     localStorage.setItem(key, JSON.stringify(arr.slice(0, 500)));
   } catch(e) {}
   // GASへも送信（全端末共有）
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
+  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
     const cfg = s ? JSON.parse(s) : {};
