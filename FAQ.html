@@ -1581,6 +1581,15 @@ function faqStoreName() {
   } catch(e) { return ''; }
 }
 function sendFaqLogToCloud(q, a, answered) {
+  // ローカルにも保存（管理画面のフォールバック用）
+  try {
+    const key = 'miwa.faq.log.v1';
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.unshift({ q, a: a || '', answered: !!answered, ts: new Date().toISOString(),
+      store: faqStoreName(), device: faqDeviceId() });
+    localStorage.setItem(key, JSON.stringify(arr.slice(0, 500)));
+  } catch(e) {}
+  // GASへも送信（全端末共有）
   const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec';
   try {
     const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
