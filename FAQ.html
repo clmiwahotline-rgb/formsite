@@ -898,11 +898,9 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwgjgqVJNFNnNwNyzc8Dssk
 const FAQ_CHAT_CLOUD_KEY = 'miwa.faq.cloud.v1';
 const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
 function faqGasUrl() {
-  try {
-    const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
-    const cfg = s ? JSON.parse(s) : {};
-    return cfg.gasUrl || DEFAULT_KB_GAS;
-  } catch(e) { return DEFAULT_KB_GAS; }
+  // GAS URL は常にコード埋め込みの DEFAULT_KB_GAS を使う
+  // （localStorage に古いみわ共有API URLが残っていても無視）
+  return DEFAULT_KB_GAS;
 }
 
 // ── 料金表連携 ─────────────────────────────────────────────
@@ -1015,11 +1013,16 @@ async function syncDocsFromCloud() {
   }
 }
 
-function searchDocuments(question, maxPassages=4, maxChars=1500) {
+function searchDocuments(question, maxPassages=4, maxChars=2000) {
   const docs = loadFaqDocsForSearch();
   if (!docs.length) return '';
+  // デバッグ：最初の1件のキー構造とcontent有無をログ出力
+  if (docs[0]) {
+    const keys = Object.keys(docs[0]).join(',');
+    const withContent = docs.filter(d => d.content && String(d.content).trim().length > 0).length;
+    console.log(`[FAQ資料] ${docs.length}件 / keys: ${keys} / content有: ${withContent}件`);
+  }
   const q = normStr(question);
-  // 日本語n-gram（2〜4文字）＋スペース分割の両方でキーワード収集
   const terms = new Set();
   q.split(/[\s\u3001\u3002\uff01\uff1f\u300c\u300d\u3010\u3011\n]+/)
     .filter(w => w.length >= 2).forEach(w => terms.add(w));
@@ -1028,56 +1031,101 @@ function searchDocuments(question, maxPassages=4, maxChars=1500) {
   }
   const searchTerms = [...terms];
   if (!searchTerms.length) return '';
-  const results = [];
+
+  // ドキュメント単位でスコア計算し、マッチしたドキュメントの関連箇所をまるごと取得
+  const matchedDocs = [];
   for (const doc of docs) {
-    const paragraphs = doc.content.split(/\n/).filter(p => p.trim().length > 5);
-    for (const para of paragraphs) {
-      const trimmed = para.trim();
-      const norm = normStr(trimmed);
-      const score = searchTerms.reduce((s, w) => norm.includes(w) ? s + w.length : s, 0);
-      if (score >= 2) results.push({ text: trimmed, score, title: doc.title });
+    const rawContent = doc.content || doc.body || doc.text || doc['内容'] || '';
+    const content = String(rawContent).trim();
+    if (!content) continue;
+    // ドキュメント全体のスコアを計算
+    const norm = normStr(content);
+    const docScore = searchTerms.reduce((s, w) => norm.includes(w) ? s + w.length : s, 0);
+    if (docScore < 2) continue;
+
+    // 段落分割してマッチした段落＋前後2段落をコンテキストとして収集
+    const paragraphs = content.split(/\n/).filter(p => p.trim().length > 3);
+    const matchedIdxs = new Set();
+    paragraphs.forEach((para, i) => {
+      const pnorm = normStr(para);
+      const pscore = searchTerms.reduce((s, w) => pnorm.includes(w) ? s + w.length : s, 0);
+      if (pscore >= 2) {
+        // マッチした段落とその前後2段落を含める
+        for (let d = -2; d <= 2; d++) {
+          const idx = i + d;
+          if (idx >= 0 && idx < paragraphs.length) matchedIdxs.add(idx);
+        }
+      }
+    });
+
+    if (matchedIdxs.size === 0) {
+      // 段落単位でヒットしない場合はドキュメントの先頭500文字を使う
+      matchedDocs.push({ title: doc.title || '資料', text: content.slice(0, 500), score: docScore });
+    } else {
+      // マッチした段落群をまとめてテキスト化
+      const sortedIdxs = [...matchedIdxs].sort((a, b) => a - b);
+      const text = sortedIdxs.map(i => paragraphs[i].trim()).filter(Boolean).join('\n');
+      matchedDocs.push({ title: doc.title || '資料', text, score: docScore });
     }
   }
-  if (!results.length) return '';
-  results.sort((a, b) => b.score - a.score);
-  const seen = new Set();
-  const top = []; let chars = 0;
-  for (const r of results) {
-    if (seen.has(r.text) || top.length >= maxPassages || chars >= maxChars) continue;
-    seen.add(r.text); top.push(r); chars += r.text.length;
+
+  if (!matchedDocs.length) return '';
+  matchedDocs.sort((a, b) => b.score - a.score);
+
+  // 上位ドキュメントからmaxChars以内でテキストを収集
+  const sections = []; let chars = 0;
+  for (const d of matchedDocs) {
+    if (chars >= maxChars) break;
+    const text = d.text.slice(0, maxChars - chars);
+    sections.push('【' + d.title + '】\n' + text);
+    chars += text.length;
   }
-  if (!top.length) return '';
-  const grouped = {};
-  for (const r of top) { if (!grouped[r.title]) grouped[r.title] = []; grouped[r.title].push(r.text); }
-  const sections = Object.entries(grouped).map(([t, txts]) => '【' + t + '】\n' + txts.join('\n'));
+  if (!sections.length) return '';
   return '\n\n[参考資料（キーワード検索）]\n' + sections.join('\n\n') + '\n※上記の資料内容も参考にして回答してください。';
 }
 
 async function loadKBFromCloud() {
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
+  const gasUrl = DEFAULT_KB_GAS;
+  if (!gasUrl) return;
+  const url = gasUrl + '?sheet=' + encodeURIComponent('知識ベース') + '&t=' + Date.now();
+  let data = null;
   try {
-    const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
-    const cfg = s ? JSON.parse(s) : {};
-    const gasUrl = cfg.gasUrl || DEFAULT_KB_GAS;
-    if (!gasUrl) return;
-    const res = await fetch(gasUrl + '?action=get_kb');
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      const loaded = data
-        .filter(item => item.enabled !== false)
-        .map(item => ({
-          ...item,
-          images: typeof item.images === 'string'
-            ? item.images.split(',').filter(Boolean)
-            : (Array.isArray(item.images) ? item.images : []),
-        }));
-      if (loaded.length > 0) {
-        knowledgeBase = loaded;
-        console.log('[FAQ] クラウドから知識ベースを読み込みました：', loaded.length, '件');
-      }
-    }
+    const res = await fetch(url, { redirect: 'follow' });
+    data = await res.json();
   } catch(e) {
-    console.warn('[FAQ] クラウドKB読み込み失敗（ローカルで継続）:', e.message);
+    // JSONPフォールバック（CORS/リダイレクト対応）
+    try {
+      data = await new Promise((resolve, reject) => {
+        const cb = '__faqkb' + Date.now();
+        const s = document.createElement('script');
+        s.src = url + '&callback=' + cb;
+        window[cb] = d => { delete window[cb]; document.head.removeChild(s); resolve(d); };
+        s.onerror = () => reject(new Error('JSONP failed'));
+        document.head.appendChild(s);
+        setTimeout(() => reject(new Error('timeout')), 8000);
+      });
+    } catch(e2) {
+      console.warn('[FAQ] クラウドKB読み込み失敗（ローカルで継続）:', e2.message);
+      return;
+    }
+  }
+  if (Array.isArray(data) && data.length > 0) {
+    const loaded = data
+      .filter(item => item.enabled !== false)
+      .map(item => ({
+        ...item,
+        images: typeof item.images === 'string'
+          ? item.images.split(',').filter(Boolean)
+          : (Array.isArray(item.images) ? item.images : []),
+      }));
+    if (loaded.length > 0) {
+      knowledgeBase = loaded;
+      console.log('[FAQ] クラウドから知識ベースを読み込みました：', loaded.length, '件');
+    } else {
+      console.warn('[FAQ] クラウドKB: enabled=falseで全件除外されました');
+    }
+  } else {
+    console.warn('[FAQ] クラウドKB: データなし or 取得失敗', data);
   }
 }
 
@@ -1298,6 +1346,8 @@ async function getAIAnswer(question) {
   // 料金は常に料金表を優先（知識ベースの料金は古い可能性があるため）
   const priceRule = '\n- 料金に関する質問の場合：知識ベースに記載された金額は無視し、[料金表]の数値のみを使って回答すること。[料金表]にない場合は「料金については担当スタッフにお問い合わせください」と答えること。';
   const docSupplement = searchDocuments(question);
+  console.log(`[FAQ AI] kbText=${kbText.length}文字(${scoredKB.length}件) / docSupplement=${docSupplement.length}文字 / priceItems=${priceItems.length}件`);
+  if (docSupplement) console.log('[FAQ AI] docSupplement先頭200字:', docSupplement.slice(0, 200));
 
   // 店舗情報（選択済みなら店舗に絞った回答をAIに促す）
   const _storeName  = faqStoreName();
@@ -1321,6 +1371,7 @@ async function getAIAnswer(question) {
 - 質問の意図に合致する知識がない場合は回答しない。テーマが似ていても角度が違う知識で代用しない${priceRule}
 - [料金表]または[参考資料]のセクションに該当データがある場合は、それを根拠にSTATUS:FOUNDで回答してよい
 - [参考資料]に具体的な内容（条文・手順・数値など）がある場合は、「書類を確認してください」で終わらせず、その内容を直接引用して具体的に回答すること
+- 質問が曖昧・短すぎる場合でも、[参考資料]や知識ベースに関連情報があれば、「何についてお知りになりたいですか？」と確認しつつSTATUS:FOUNDで答えられる範囲を提示すること
 
 【回答の構成】
 知識ベース・[料金表]・[参考資料]に根拠がある観点だけ、次の見出しを付けて書く。根拠が無い観点は省略する（無理に埋めない）。
@@ -1363,7 +1414,14 @@ ${kbText || '（まだ知識が登録されていません）'}${priceSupplement
   if (data.error) {
     throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || 'APIエラー'));
   }
-  const raw = data.content?.find(c => c.type === 'text')?.text || '';
+  // GASプロキシの返却形式に応じてフォールバック
+  const raw = data.content?.find(c => c.type === 'text')?.text
+    || data.content?.[0]?.text
+    || data.text
+    || data.result
+    || '';
+  if (!raw) console.warn('[FAQ AI] レスポンスが空 / datakeys:', Object.keys(data).join(','));
+  else console.log('[FAQ AI] レスポンス先頭150字:', raw.slice(0, 150));
 
   // 構造化レスポンスを解析
   const lines = raw.split('\n');
@@ -1385,6 +1443,8 @@ ${kbText || '（まだ知識が登録されていません）'}${priceSupplement
   }
 
   const text = lines.slice(bodyStart).join('\n').trim() || raw;
+  // NOT_FOUNDでも本文（確認質問など）があれば unanswered を false に
+  if (unanswered && text.length > 10) unanswered = false;
   const refItems = refs.map(idx => knowledgeBase[idx]);
 
   return { text, unanswered, refItems };
@@ -1590,11 +1650,9 @@ function sendFaqLogToCloud(q, a, answered) {
     localStorage.setItem(key, JSON.stringify(arr.slice(0, 500)));
   } catch(e) {}
   // GASへも送信（全端末共有）
-  const DEFAULT_KB_GAS = 'https://script.google.com/macros/s/AKfycbwQMEFeVHd6NEpEGNo6K1CySZUrSH3OwI6-ESz4G78WIfjyH3sCCLwSeIaemPh6tbIq/exec';
   try {
-    const s = localStorage.getItem(FAQ_CHAT_CLOUD_KEY);
-    const cfg = s ? JSON.parse(s) : {};
-    const gasUrl = cfg.gasUrl || DEFAULT_KB_GAS;
+    // GAS URL は常に DEFAULT_KB_GAS（FAQ知識ベース管理API）を使用
+    const gasUrl = DEFAULT_KB_GAS;
     if (!gasUrl) return;
     fetch(gasUrl, {
       method: 'POST',
@@ -1708,6 +1766,19 @@ function addToUnanswered(question) {
       data.unansweredList = ua;
       if (!data.nextId || data.nextId <= entry.id) data.nextId = entry.id + 1;
       localStorage.setItem('miwa.faq.kb.v1', JSON.stringify(data));
+    }
+  } catch(e) {}
+  // クラウド（GAS）にも送信して全端末共有
+  try {
+    if (DEFAULT_KB_GAS) {
+      fetch(DEFAULT_KB_GAS, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'add_ua',
+          q: question
+        })
+      }).catch(() => {});
     }
   } catch(e) {}
   renderUnanswered();
