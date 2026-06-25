@@ -175,15 +175,34 @@
   .cmt-toggle:active{ background:var(--surface-3); }
   .cmt-toggle-n{ background:var(--g-green-c); color:var(--g-green); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:800; }
   .cmt-toggle-arr{ margin-left:auto; transition:transform .2s; }
-  .cmt-form{ display:flex; gap:8px; align-items:flex-start; margin-top:10px; }
-  .cmt-form textarea{ flex:1; min-width:0; min-height:38px; max-height:120px; border-radius:11px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:13px; font-family:inherit; padding:8px 12px; resize:none; line-height:1.5; }
-  .cmt-form textarea:focus{ outline:0; border-color:var(--g-green); box-shadow:0 0 0 3px var(--g-green-c); }
-  .cmt-form-right{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
-  .cmt-name{ width:88px; height:36px; border-radius:9px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-family:inherit; padding:0 10px; }
-  .cmt-name:focus{ outline:0; border-color:var(--g-green); }
-  .cmt-add{ height:36px; padding:0 15px; border-radius:9px; border:0; background:var(--g-green); color:#fff; font-size:12.5px; font-weight:800; font-family:inherit; cursor:pointer; transition:opacity .15s ease, transform .12s ease; }
-  .cmt-add:disabled{ opacity:0.4; cursor:default; }
-  .cmt-add:not(:disabled):active{ transform:scale(0.96); }
+  /* ── コメントモーダル ── */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:flex-end; justify-content:center; animation:fadein .15s ease; }
+  @keyframes fadein{ from{opacity:0} to{opacity:1} }
+  .modal-sheet{ background:var(--surface); border-radius:24px 24px 0 0; width:100%; max-width:600px; padding-bottom:env(safe-area-inset-bottom,16px); animation:slideup .2s ease; }
+  @keyframes slideup{ from{transform:translateY(60px);opacity:0} to{transform:none;opacity:1} }
+  .modal-grab{ width:40px; height:4px; border-radius:2px; background:var(--line-strong); margin:12px auto 0; }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; }
+  .modal-title{ font-size:16px; font-weight:800; letter-spacing:-0.01em; }
+  .modal-close{ border:0; background:none; font-size:22px; color:var(--ink-mute); cursor:pointer; padding:4px; border-radius:8px; line-height:1; }
+  .modal-body{ padding:4px 20px 16px; display:flex; flex-direction:column; gap:12px; }
+  .modal-field-label{ font-size:12px; font-weight:800; color:var(--ink-mute); margin-bottom:5px; }
+  .modal-name-input{ width:100%; height:44px; border-radius:12px; border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:15px; font-family:inherit; padding:0 14px; box-sizing:border-box; }
+  .modal-name-input:focus{ outline:0; border-color:var(--g-green); box-shadow:0 0 0 3px var(--g-green-c); }
+  .modal-text-input{ width:100%; min-height:120px; border-radius:12px; border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:15px; font-family:inherit; padding:12px 14px; resize:none; line-height:1.65; box-sizing:border-box; }
+  .modal-text-input:focus{ outline:0; border-color:var(--g-green); box-shadow:0 0 0 3px var(--g-green-c); }
+  .modal-foot{ display:flex; gap:10px; padding:0 20px 20px; }
+  .modal-btn-cancel{ flex:1; height:48px; border-radius:14px; border:1.5px solid var(--line-strong); background:transparent; color:var(--ink-soft); font-size:14px; font-weight:700; font-family:inherit; cursor:pointer; }
+  .modal-btn-submit{ flex:2; height:48px; border-radius:14px; border:0; background:var(--g-green); color:#fff; font-size:14px; font-weight:800; font-family:inherit; cursor:pointer; }
+  .modal-btn-submit:disabled{ opacity:0.4; cursor:default; }
+  /* ── いいね + アクション行 ── */
+  .voice-actions{ display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:11px; border-top:1px solid var(--line); }
+  .like-btn{ display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:999px; border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink-mute); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .15s; }
+  .like-btn.liked{ background:var(--g-red-c); border-color:var(--g-red); color:var(--g-red); }
+  .like-btn:active{ transform:scale(0.95); }
+  .cmt-toggle-btn{ display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:999px; border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink-mute); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .15s; }
+  .cmt-toggle-btn.open{ background:var(--g-green-c); border-color:var(--g-green); color:var(--g-green); }
+  .cmt-open-btn{ display:inline-flex; align-items:center; gap:5px; padding:8px 16px; border-radius:999px; border:1.5px solid var(--g-green); background:var(--g-green); color:#fff; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; margin-left:auto; }
+  .cmt-open-btn:active{ transform:scale(0.95); }
 
   /* ── 状態（読み込み・空・エラー） ── */
   .state{ text-align:center; padding:48px 20px; color:var(--ink-mute); }
@@ -249,6 +268,12 @@
   // ── 共有クラウド（コメント保存：ダッシュボードと共通シート）──
   const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbyvBTM4ZijS0hDjKBVjczQywjXYOZJnszLqgqfTZhsNdfd-GSPQp-LYlRxfCMedkg8/exec";
   const COMMENT_SHEET = "ありがとうコメント";
+  const LIKES_SHEET = "ありがとうリアクション";
+  const getDeviceId = () => {
+    let id=''; try{id=localStorage.getItem("miwa.device.id.v1")||'';}catch(e){}
+    if(!id){id="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);try{localStorage.setItem("miwa.device.id.v1",id);}catch(e){}}
+    return id;
+  };
 
   // JSONP フォールバック（CORS で fetch が失敗したとき）
   function jsonp(url){
@@ -288,6 +313,8 @@
   }
   const cloudAdd    = (row)=> cloudPost({ sheet:COMMENT_SHEET, action:"add", row });
   const cloudDelete = (id)=>  cloudPost({ sheet:COMMENT_SHEET, action:"delete", id });
+  const cloudLikeAdd = (row)=> cloudPost({ sheet:LIKES_SHEET, action:"add", row });
+  const cloudLikeDel = (id)=>  cloudPost({ sheet:LIKES_SHEET, action:"delete", id });
 
   // ── 店舗カラー（全システム共通）──
   const STORE_TAG_COLORS = {
@@ -345,20 +372,51 @@
     return "k" + (h>>>0).toString(36);
   };
 
-  // ── 1枚の声カード ──
-  function Voice({ card, comments, onAdd, onDel }){
-    const cfg = kindCfg(card.kind);
+  // ── コメントモーダル ──
+  function CommentModal({ onClose, onSave }){
     const [who,setWho] = useState("");
     const [text,setText] = useState("");
+    const submit = ()=>{ const t=text.trim(); if(!t) return; onSave({ who:who.trim(), text:t }); };
+    return ReactDOM.createPortal(
+      <div className="modal-backdrop" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+        <div className="modal-sheet">
+          <div className="modal-grab"></div>
+          <div className="modal-head">
+            <div className="modal-title">コメントする</div>
+            <button className="modal-close" onClick={onClose}>×</button>
+          </div>
+          <div className="modal-body">
+            <div>
+              <div className="modal-field-label">名前（任意）</div>
+              <input className="modal-name-input" placeholder="お名前" value={who} onChange={e=>setWho(e.target.value)} />
+            </div>
+            <div>
+              <div className="modal-field-label">コメント</div>
+              <textarea className="modal-text-input" placeholder="コメントを入力…" value={text} autoFocus onChange={e=>setText(e.target.value)} />
+            </div>
+          </div>
+          <div className="modal-foot">
+            <button className="modal-btn-cancel" onClick={onClose}>キャンセル</button>
+            <button className="modal-btn-submit" onClick={submit} disabled={!text.trim()}>投稿する</button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  // ── 1枚の声カード ──
+  function Voice({ card, comments, onAdd, onDel, liked, likeCount, onLike }){
+    const cfg = kindCfg(card.kind);
     const [copied,setCopied] = useState(false);
     const [cmtsOpen,setCmtsOpen] = useState(false);
-    const submit = ()=>{ const t=text.trim(); if(!t) return; onAdd({ who:who.trim(), text:t }); setText(""); };
+    const [showModal,setShowModal] = useState(false);
     const copy = async ()=>{
-      const lines = [`【${card.store||"不明"}】${card.kind?"（"+card.kind+"）":""}`, fmtJst(card.date), "", card.content||""];
-      if(comments.length){ lines.push("","── コメント ──"); comments.forEach(c=>lines.push(`・${c.who?c.who+"：":""}${c.text}`)); }
-      const out = lines.join("\n");
+      const lines = [card.store||"", card.kind||"", fmtJst(card.date), "", card.content||""];
+      if(comments.length){ lines.push("","── コメント ──"); comments.forEach(c=>lines.push((c.who?c.who+"：":"")+c.text)); }
+      const out=lines.filter(Boolean).join("\n");
       try{ await navigator.clipboard.writeText(out); }
-      catch(e){ const ta=document.createElement("textarea"); ta.value=out; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");}catch(e2){} ta.remove(); }
+      catch(e){ const ta=document.createElement("textarea"); ta.value=out; ta.style.cssText="position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");}catch(e2){} ta.remove(); }
       setCopied(true); setTimeout(()=>setCopied(false),1400);
     };
     return (
@@ -370,49 +428,41 @@
         </div>
         {card.kind && <div className="kind-badge" style={{ background:cfg.bg, color:cfg.c }}>{cfg.emoji} {card.kind}</div>}
         <div className="voice-body">{card.content||""}</div>
-
-        <div className="cmts">
+        <div className="voice-actions">
+          <button className={"like-btn"+(liked?" liked":"")} onClick={onLike}>
+            {liked ? "❤️" : "🤍"}{likeCount>0 && <span style={{marginLeft:4}}>{likeCount}</span>}
+          </button>
           {comments.length>0 && (
-            <button className="cmt-toggle" onClick={()=>setCmtsOpen(v=>!v)}>
-              💬 コメントを{cmtsOpen?"閉じる":"見る"}
-              <span className="cmt-toggle-n">{comments.length}件</span>
-              <svg className="cmt-toggle-arr" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                style={{transform:cmtsOpen?"rotate(180deg)":"none"}}>
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
+            <button className={"cmt-toggle-btn"+(cmtsOpen?" open":"")} onClick={()=>setCmtsOpen(v=>!v)}>
+              💬 {comments.length}件
             </button>
           )}
-          {cmtsOpen && (
-            <div className="cmt-list" style={{marginTop:8}}>
-              {comments.map(c=>(
-                <div key={c.id} className="cmt">
-                  <span className="cmt-av">{(c.who||"匿").slice(0,1)}</span>
-                  <div className="cmt-main">
-                    {c.who && <div className="cmt-who">{c.who}</div>}
-                    <div className="cmt-txt">{c.text}</div>
-                  </div>
-                  <button className="cmt-del" onClick={()=>onDel(c.id)} aria-label="コメント削除">×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="cmt-form">
-            <textarea className="cmt-input" placeholder="応援コメントを追加…（Shift+Enterで改行）" value={text}
-              onChange={e=>setText(e.target.value)}
-              onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); submit(); } }} />
-            <div className="cmt-form-right">
-              <input className="cmt-name" placeholder="名前(任意)" value={who} onChange={e=>setWho(e.target.value)} />
-              <button className="cmt-add" onClick={submit} disabled={!text.trim()}>追加</button>
-            </div>
-          </div>
+          <button className="cmt-open-btn" onClick={()=>setShowModal(true)}>✏️ コメント</button>
         </div>
+        {cmtsOpen && (
+          <div className="cmt-list" style={{marginTop:8}}>
+            {comments.map(c=>(
+              <div key={c.id} className="cmt">
+                <span className="cmt-av">{(c.who||"匿").slice(0,1)}</span>
+                <div className="cmt-main">
+                  {c.who && <div className="cmt-who">{c.who}</div>}
+                  <div className="cmt-txt">{c.text}</div>
+                </div>
+                <button className="cmt-del" onClick={()=>onDel(c.id)} aria-label="コメント削除">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {showModal && <CommentModal onClose={()=>setShowModal(false)} onSave={c=>{ onAdd(c); setShowModal(false); }} />}
       </div>
     );
   }
 
+
   function App(){
     const [cards,setCards] = useState(null);   // null = 読み込み中
     const [comments,setComments] = useState([]);
+    const [likes,setLikes] = useState([]);
     const [err,setErr] = useState("");
     const [refreshing,setRefreshing] = useState(false);
     const [store,setStore] = useState("all");
@@ -431,15 +481,19 @@
       const remote = await cloudGet(COMMENT_SHEET);
       if(remote!=null) setComments(remote.map(c=>({ ...c, ts:Number(c.ts)||0 })));
     },[]);
+    const loadLikes = useCallback(async ()=>{
+      const remote = await cloudGet(LIKES_SHEET);
+      if(remote!=null) setLikes(remote.map(l=>({ ...l, ts:Number(l.ts)||0 })));
+    },[]);
 
-    useEffect(()=>{ loadCards(); loadComments(); /* eslint-disable-next-line */ },[]);
+    useEffect(()=>{ loadCards(); loadComments(); loadLikes(); /* eslint-disable-next-line */ },[]);
     // 自動更新（45秒ごと）
     useEffect(()=>{
-      const t = setInterval(()=>{ loadCards(); loadComments(); }, 45000);
+      const t = setInterval(()=>{ loadCards(); loadComments(); loadLikes(); }, 45000);
       return ()=>clearInterval(t);
-    },[loadCards,loadComments]);
+    },[loadCards,loadComments,loadLikes]);
 
-    const refresh = async ()=>{ setRefreshing(true); await Promise.all([loadCards(),loadComments()]); setRefreshing(false); };
+    const refresh = async ()=>{ setRefreshing(true); await Promise.all([loadCards(),loadComments(),loadLikes()]); setRefreshing(false); };
 
     const commentsByKey = useMemo(()=>{
       const m = {};
@@ -454,6 +508,20 @@
       cloudAdd(note);
     };
     const delComment = (id)=>{ setComments(prev=>prev.filter(x=>x.id!==id)); cloudDelete(id); };
+
+    const deviceId = getDeviceId();
+    const likesByKey = useMemo(()=>{ const m={}; likes.forEach(l=>{ (m[l.cardKey]=m[l.cardKey]||[]).push(l); }); return m; },[likes]);
+    const toggleLike = (cardKey)=>{
+      const myLike = (likesByKey[cardKey]||[]).find(l=>l.deviceId===deviceId);
+      if(myLike){
+        setLikes(prev=>prev.filter(x=>x.id!==myLike.id));
+        cloudLikeDel(myLike.id);
+      } else {
+        const l={ id:"lk"+Date.now()+Math.random().toString(36).slice(2,5), cardKey, deviceId, ts:Date.now() };
+        setLikes(prev=>[...prev,l]);
+        cloudLikeAdd(l);
+      }
+    };
 
     const list = cards || [];
     const stores = useMemo(()=>[...new Set(list.map(d=>d.store).filter(Boolean))].sort(),[cards]);
@@ -564,7 +632,10 @@
             <div className="voices">
               {filtered.map((card,i)=>{ const ck=cardKeyOf(card); return (
                 <Voice key={ck+"_"+i} card={card} comments={commentsByKey[ck]||[]}
-                  onAdd={(c)=>addComment(ck,c)} onDel={delComment} />
+                  onAdd={(c)=>addComment(ck,c)} onDel={delComment}
+                  liked={!!(likesByKey[ck]||[]).find(l=>l.deviceId===deviceId)}
+                  likeCount={(likesByKey[ck]||[]).length}
+                  onLike={()=>toggleLike(ck)} />
               ); })}
             </div>
           )}
