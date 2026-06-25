@@ -167,15 +167,21 @@
   .cmt-av{ width:26px; height:26px; flex-shrink:0; border-radius:50%; background:linear-gradient(135deg, var(--g-green), #49bd6a); color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .cmt-main{ flex:1; min-width:0; }
   .cmt-who{ font-size:11.5px; font-weight:800; color:var(--ink); margin-bottom:1px; }
-  .cmt-txt{ font-size:12.5px; color:var(--ink-soft); line-height:1.55; text-wrap:pretty; word-break:break-word; }
+  .cmt-txt{ font-size:14px; color:var(--ink-soft); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
   .cmt-del{ border:0; background:transparent; color:var(--ink-faint); font-size:17px; line-height:1; cursor:pointer; padding:0 3px; border-radius:6px; flex-shrink:0; }
   .cmt-del:hover{ background:var(--g-red-c); color:var(--g-red); }
-  .cmt-form{ display:flex; gap:8px; align-items:center; }
-  .cmt-form input{ height:38px; border-radius:11px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-family:inherit; padding:0 12px; }
-  .cmt-form input:focus{ outline:0; border-color:var(--g-green); box-shadow:0 0 0 3px var(--g-green-c); }
-  .cmt-name{ width:88px; flex-shrink:0; }
-  .cmt-input{ flex:1; min-width:0; }
-  .cmt-add{ height:38px; flex-shrink:0; padding:0 15px; border-radius:11px; border:0; background:var(--g-green); color:#fff; font-size:12.5px; font-weight:800; font-family:inherit; cursor:pointer; transition:opacity .15s ease, transform .12s ease; }
+  .cmt-toggle{ width:100%; display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:10px; border:1px solid var(--line-strong); background:var(--surface-1); font-size:13px; font-weight:700; color:var(--ink-mute); cursor:pointer; font-family:inherit; margin-top:10px; transition:background .14s; }
+  .cmt-toggle:hover{ background:var(--surface-2); }
+  .cmt-toggle:active{ background:var(--surface-3); }
+  .cmt-toggle-n{ background:var(--g-green-c); color:var(--g-green); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:800; }
+  .cmt-toggle-arr{ margin-left:auto; transition:transform .2s; }
+  .cmt-form{ display:flex; gap:8px; align-items:flex-start; margin-top:10px; }
+  .cmt-form textarea{ flex:1; min-width:0; min-height:38px; max-height:120px; border-radius:11px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:13px; font-family:inherit; padding:8px 12px; resize:none; line-height:1.5; }
+  .cmt-form textarea:focus{ outline:0; border-color:var(--g-green); box-shadow:0 0 0 3px var(--g-green-c); }
+  .cmt-form-right{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .cmt-name{ width:88px; height:36px; border-radius:9px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-size:12.5px; font-family:inherit; padding:0 10px; }
+  .cmt-name:focus{ outline:0; border-color:var(--g-green); }
+  .cmt-add{ height:36px; padding:0 15px; border-radius:9px; border:0; background:var(--g-green); color:#fff; font-size:12.5px; font-weight:800; font-family:inherit; cursor:pointer; transition:opacity .15s ease, transform .12s ease; }
   .cmt-add:disabled{ opacity:0.4; cursor:default; }
   .cmt-add:not(:disabled):active{ transform:scale(0.96); }
 
@@ -345,6 +351,7 @@
     const [who,setWho] = useState("");
     const [text,setText] = useState("");
     const [copied,setCopied] = useState(false);
+    const [cmtsOpen,setCmtsOpen] = useState(false);
     const submit = ()=>{ const t=text.trim(); if(!t) return; onAdd({ who:who.trim(), text:t }); setText(""); };
     const copy = async ()=>{
       const lines = [`【${card.store||"不明"}】${card.kind?"（"+card.kind+"）":""}`, fmtJst(card.date), "", card.content||""];
@@ -366,7 +373,17 @@
 
         <div className="cmts">
           {comments.length>0 && (
-            <div className="cmt-list">
+            <button className="cmt-toggle" onClick={()=>setCmtsOpen(v=>!v)}>
+              💬 コメントを{cmtsOpen?"閉じる":"見る"}
+              <span className="cmt-toggle-n">{comments.length}件</span>
+              <svg className="cmt-toggle-arr" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                style={{transform:cmtsOpen?"rotate(180deg)":"none"}}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+          )}
+          {cmtsOpen && (
+            <div className="cmt-list" style={{marginTop:8}}>
               {comments.map(c=>(
                 <div key={c.id} className="cmt">
                   <span className="cmt-av">{(c.who||"匿").slice(0,1)}</span>
@@ -380,10 +397,13 @@
             </div>
           )}
           <div className="cmt-form">
-            <input className="cmt-name" placeholder="名前(任意)" value={who} onChange={e=>setWho(e.target.value)} />
-            <input className="cmt-input" placeholder="応援コメントを追加…" value={text}
-              onChange={e=>setText(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter") submit(); }} />
-            <button className="cmt-add" onClick={submit} disabled={!text.trim()}>追加</button>
+            <textarea className="cmt-input" placeholder="応援コメントを追加…（Shift+Enterで改行）" value={text}
+              onChange={e=>setText(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); submit(); } }} />
+            <div className="cmt-form-right">
+              <input className="cmt-name" placeholder="名前(任意)" value={who} onChange={e=>setWho(e.target.value)} />
+              <button className="cmt-add" onClick={submit} disabled={!text.trim()}>追加</button>
+            </div>
           </div>
         </div>
       </div>
@@ -397,6 +417,7 @@
     const [refreshing,setRefreshing] = useState(false);
     const [store,setStore] = useState("all");
     const [kind,setKind] = useState("all");
+    const [month,setMonth] = useState("all");
     const [q,setQ] = useState("");
     const [large,setLarge] = useState(()=>{ try{ return localStorage.getItem("miwa.voices.textsize")==="lg"; }catch(e){ return false; } });
     useEffect(()=>{ try{ localStorage.setItem("miwa.voices.textsize", large?"lg":"normal"); }catch(e){} },[large]);
@@ -437,13 +458,20 @@
     const list = cards || [];
     const stores = useMemo(()=>[...new Set(list.map(d=>d.store).filter(Boolean))].sort(),[cards]);
     const kinds  = useMemo(()=>[...new Set(list.map(d=>d.kind).filter(Boolean))],[cards]);
+    const months = useMemo(()=>{
+      const seen=new Set();
+      list.forEach(d=>{ if(d.date){ const dt=new Date(d.date); if(!isNaN(dt.getTime())) seen.add(dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")); } });
+      return [...seen].sort().reverse();
+    },[cards]);
+    const fmtMonth=(k)=>{ const [y,m]=k.split("-"); return y+"年"+parseInt(m)+"月"; };
 
     const filtered = useMemo(()=> list.filter(d=>{
       const sOk = store==="all" || d.store===store;
       const kOk = kind==="all"  || d.kind===kind;
+      const mOk = month==="all" || (()=>{ const dt=new Date(d.date); if(isNaN(dt.getTime())) return true; return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")===month; })();
       const qOk = !q || ((d.store||"")+(d.kind||"")+(d.content||"")).toLowerCase().includes(q.toLowerCase());
-      return sOk && kOk && qOk;
-    }).sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)), [cards,store,kind,q]);
+      return sOk && kOk && mOk && qOk;
+    }).sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)), [cards,store,kind,month,q]);
 
     // ヒーロー統計
     const total = list.length;
@@ -501,6 +529,12 @@
                 <div className="chips">
                   <button className={"fchip"+(kind==="all"?" on":"")} onClick={()=>setKind("all")}>すべて</button>
                   {kinds.map(k=>{ const c=kindCfg(k); return <button key={k} className={"fchip"+(kind===k?" on":"")} onClick={()=>setKind(k)}>{c.emoji} {k}</button>; })}
+                </div>
+              )}
+              {months.length>1 && (
+                <div className="chips">
+                  <button className={"fchip"+(month==="all"?" on":"")} onClick={()=>setMonth("all")}>📅 すべての月</button>
+                  {months.map(m=><button key={m} className={"fchip"+(month===m?" on":"")} onClick={()=>setMonth(m)}>{fmtMonth(m)}</button>)}
                 </div>
               )}
             </div>
