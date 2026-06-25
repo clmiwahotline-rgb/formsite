@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>みんなの声 ｜ ありがとうカード ・ クリーニングみわ</title>
 <meta name="description" content="クリーニングみわ 全店に届いた『ありがとう』とスタッフの声。コメントで応援もできます。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -163,8 +163,7 @@
   /* ── コメント ── */
   .cmts{ margin-top:13px; padding-top:12px; border-top:1px dashed var(--line-strong); display:flex; flex-direction:column; gap:8px; }
   .cmt-list{ display:flex; flex-direction:column; gap:7px; }
-  .cmt{ display:flex; align-items:flex-start; gap:9px; background:var(--surface-1); border:1px solid var(--line); border-radius:14px; padding:9px 11px; }
-  .cmt-av{ width:26px; height:26px; flex-shrink:0; border-radius:50%; background:linear-gradient(135deg, var(--g-green), #49bd6a); color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .cmt{ display:flex; align-items:flex-start; gap:8px; background:var(--surface-1); border:1px solid var(--line); border-radius:14px; padding:10px 13px; }
   .cmt-main{ flex:1; min-width:0; }
   .cmt-who{ font-size:11.5px; font-weight:800; color:var(--ink); margin-bottom:1px; }
   .cmt-txt{ font-size:14px; color:var(--ink-soft); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
@@ -176,10 +175,10 @@
   .cmt-toggle-n{ background:var(--g-green-c); color:var(--g-green); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:800; }
   .cmt-toggle-arr{ margin-left:auto; transition:transform .2s; }
   /* ── コメントモーダル ── */
-  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:flex-end; justify-content:center; animation:fadein .15s ease; }
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:flex; align-items:flex-start; justify-content:center; padding-top:env(safe-area-inset-top,0px); animation:fadein .15s ease; overflow-y:auto; }
   @keyframes fadein{ from{opacity:0} to{opacity:1} }
-  .modal-sheet{ background:var(--surface); border-radius:24px 24px 0 0; width:100%; max-width:600px; padding-bottom:env(safe-area-inset-bottom,16px); animation:slideup .2s ease; }
-  @keyframes slideup{ from{transform:translateY(60px);opacity:0} to{transform:none;opacity:1} }
+  .modal-sheet{ background:var(--surface); border-radius:0 0 24px 24px; width:100%; max-width:600px; animation:slidedown .2s ease; }
+  @keyframes slidedown{ from{transform:translateY(-40px);opacity:0} to{transform:none;opacity:1} }
   .modal-grab{ width:40px; height:4px; border-radius:2px; background:var(--line-strong); margin:12px auto 0; }
   .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px 8px; }
   .modal-title{ font-size:16px; font-weight:800; letter-spacing:-0.01em; }
@@ -245,7 +244,7 @@
   .kind-badge{ font-size:calc(12px * var(--ts)); }
   .voice-body{ font-size:calc(14px * var(--ts)); }
   .cmt-who{ font-size:calc(11.5px * var(--ts)); }
-  .cmt-txt{ font-size:calc(12.5px * var(--ts)); }
+  .cmt-txt{ font-size:calc(14px * var(--ts)); color:var(--ink-soft); line-height:1.6; white-space:pre-wrap; word-break:break-word; }
   .cmt-form input{ font-size:calc(12.5px * var(--ts)); }
   .cmt-add{ font-size:calc(12.5px * var(--ts)); }
   .copy-btn{ font-size:calc(11px * var(--ts)); }
@@ -406,10 +405,9 @@
   }
 
   // ── 1枚の声カード ──
-  function Voice({ card, comments, onAdd, onDel, liked, likeCount, onLike }){
+  function Voice({ card, comments, onAdd, onDel, liked, likeCount, onLike, cmtsOpen, onToggleCmts }){
     const cfg = kindCfg(card.kind);
     const [copied,setCopied] = useState(false);
-    const [cmtsOpen,setCmtsOpen] = useState(false);
     const [showModal,setShowModal] = useState(false);
     const copy = async ()=>{
       const lines = [card.store||"", card.kind||"", fmtJst(card.date), "", card.content||""];
@@ -430,11 +428,11 @@
         <div className="voice-body">{card.content||""}</div>
         <div className="voice-actions">
           <button className={"like-btn"+(liked?" liked":"")} onClick={onLike}>
-            {liked ? "❤️" : "🤍"}{likeCount>0 && <span style={{marginLeft:4}}>{likeCount}</span>}
+            いいね 💚{likeCount>0 && <span style={{marginLeft:4}}>{likeCount}</span>}
           </button>
           {comments.length>0 && (
-            <button className={"cmt-toggle-btn"+(cmtsOpen?" open":"")} onClick={()=>setCmtsOpen(v=>!v)}>
-              💬 {comments.length}件
+            <button className={"cmt-toggle-btn"+(cmtsOpen?" open":"")} onClick={onToggleCmts}>
+              コメント{comments.length}件
             </button>
           )}
           <button className="cmt-open-btn" onClick={()=>setShowModal(true)}>✏️ コメント</button>
@@ -443,7 +441,6 @@
           <div className="cmt-list" style={{marginTop:8}}>
             {comments.map(c=>(
               <div key={c.id} className="cmt">
-                <span className="cmt-av">{(c.who||"匿").slice(0,1)}</span>
                 <div className="cmt-main">
                   {c.who && <div className="cmt-who">{c.who}</div>}
                   <div className="cmt-txt">{c.text}</div>
@@ -510,6 +507,7 @@
     const delComment = (id)=>{ setComments(prev=>prev.filter(x=>x.id!==id)); cloudDelete(id); };
 
     const deviceId = getDeviceId();
+    const [openCmtKey,setOpenCmtKey] = useState(null);
     const likesByKey = useMemo(()=>{ const m={}; likes.forEach(l=>{ (m[l.cardKey]=m[l.cardKey]||[]).push(l); }); return m; },[likes]);
     const toggleLike = (cardKey)=>{
       const myLike = (likesByKey[cardKey]||[]).find(l=>l.deviceId===deviceId);
@@ -635,7 +633,9 @@
                   onAdd={(c)=>addComment(ck,c)} onDel={delComment}
                   liked={!!(likesByKey[ck]||[]).find(l=>l.deviceId===deviceId)}
                   likeCount={(likesByKey[ck]||[]).length}
-                  onLike={()=>toggleLike(ck)} />
+                  onLike={()=>toggleLike(ck)}
+                  cmtsOpen={openCmtKey===ck}
+                  onToggleCmts={()=>setOpenCmtKey(prev=>prev===ck?null:ck)} />
               ); })}
             </div>
           )}
